@@ -104,18 +104,16 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
     let result = [];
 
     var retrieveCreatedQuizzes = admin.database().ref("/user_info/".concat(userID).concat("/quizzes_created")).once('value', function(s1) {
-        s1 => {
             var keys1 = Object.keys(s1.val());
             for(q in keys1){
-                console.log("key = ".concat(keys1[q]));
+                // console.log("key1 = ".concat(keys1[q]));
                 createdQuizzes.push(keys1[q]);
             }
-        }
-    });
+        });
     var retrieveTakenQuizzes = admin.database().ref("/user_info/".concat(userID).concat("/quizzes_taken")).once('value', function(s2) {
         var keys2 = Object.keys(s2.val());
         for(q in keys2){
-            console.log("key2 = ".concat(keys2[q]));
+            // console.log("key2 = ".concat(keys2[q]));
             takenQuizzes.push(keys2[q]);
         }                
     });
@@ -126,7 +124,7 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
                 return admin.database().ref("/categories/".concat(category)).once('value', function(s3) {
                     var keys3 = Object.keys(s3.val());
                     for(q in keys3){
-                        console.log("key = ".concat(keys3[q]));
+                        // console.log("key = ".concat(keys3[q]));
                         if(!(createdQuizzes.includes(keys3[q]) || takenQuizzes.includes(keys3[q]))){
                             result.push(keys3[q]);
                         }
@@ -151,7 +149,7 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
                 return admin.database().ref("/categories/general").once('value', function(s3) {
                     var keys3 = Object.keys(s3.val());
                     for(q in keys3){
-                        console.log("key = ".concat(keys3[q]));
+                        // console.log("key = ".concat(keys3[q]));
                         if(!(createdQuizzes.includes(keys3[q]) || takenQuizzes.includes(keys3[q]))){
                             result.push(keys3[q]);
                         }
