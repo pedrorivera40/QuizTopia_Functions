@@ -1,5 +1,9 @@
 // The Cloud Functions for Firebase SDK to create Cloud Functions and setup triggers.
 const functions = require('firebase-functions');
+const cors = require('cors')({origin: true});
+const express = require('express');
+const app = express();
+
 
 // The Firebase Admin SDK to access the Firebase Realtime Database.
 const admin = require('firebase-admin');
@@ -11,11 +15,11 @@ admin.initializeApp();
  */
 
 class QuizEntry { // 
-    constructor(quizID, name, category, date, description){
+    constructor(quizID, name, category, owner, description){
         this.quizID = quizID;
         this.name = name;
         this.category = category;
-        this.date = date;
+        this.owner = owner;
         this.description = description;
     }
 }
@@ -103,6 +107,14 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
     let takenQuizzes = [];
     let result = [];
 
+    response.set('Access-Control-Allow-Origin', '*');
+    // response.set('Access-Control-Allow-Methods', 'GET');
+    response.header("Access-Control-Allow-Origin", "*");
+    response.header("Access-Control-Allow-Headers");
+    request.header("Access-Control-Allow-Origin", "*");
+    request.header("Access-Control-Allow-Headers");
+
+
     var retrieveCreatedQuizzes = admin.database().ref("/user_info/".concat(userID).concat("/quizzes_created")).once('value', function(s1) {
             var keys1 = Object.keys(s1.val());
             for(q in keys1){
@@ -117,56 +129,68 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
             takenQuizzes.push(keys2[q]);
         }                
     });
+    return cors(request, response, () => {
+        if(category) {
+            return Promise.all([retrieveCreatedQuizzes, retrieveTakenQuizzes]).then(
+                () => {
+                    return admin.database().ref("/categories/".concat(category)).once('value', function(s3) {
+                        var keys3 = Object.keys(s3.val());
+                        for(q in keys3){
+                            // console.log("key = ".concat(keys3[q]));
+                            if(!(createdQuizzes.includes(keys3[q]) || takenQuizzes.includes(keys3[q]))){
+                                let vta = s3.val()[keys3[q]];
+                                vta["quizID"] = keys3[q];
+                                result.push(vta);
+                                // result.push(keys3[q]);
+                            }
+                        }                    
+                    });
+                }
+            ).then(
+                () => {
+                    response.set('Access-Control-Allow-Origin', '*');
+                    response.status(200).send(result.slice(0, 50));
+                    return 0;
+                }
+            ).catch(
+                error => {
+                    console.log(error);
+                    response.sendStatus(500, error);
+                    return -1;
+                }
+            );
+        } else {
+            return Promise.all([retrieveCreatedQuizzes, retrieveTakenQuizzes]).then(
+                () => {
+                    return admin.database().ref("/categories/general").once('value', function(s3) {
+                        var keys3 = Object.keys(s3.val());
+                        for(q in keys3){
+                            // console.log("key = ".concat(keys3[q]));
+                            if(!(createdQuizzes.includes(keys3[q]) || takenQuizzes.includes(keys3[q]))){
+                                let vta = s3.val()[keys3[q]];
+                                vta["quizID"] = keys3[q];
+                                result.push(vta);
+                                // result.push(keys3[q]);
+                            }
+                        }                    
+                    });
+                }
+            ).then(
+                () => {
+                    response.set('Access-Control-Allow-Origin', '*');
+                    response.status(200).send(result.slice(0, 50));
+                    return 0;
+                }
+            ).catch(
+                error => {
+                    console.log(error);
+                    response.sendStatus(500, error);
+                    return -1;
+                }
+            );
+        }
+    });
+});
 
-    if(category) {
-        return Promise.all([retrieveCreatedQuizzes, retrieveTakenQuizzes]).then(
-            () => {
-                return admin.database().ref("/categories/".concat(category)).once('value', function(s3) {
-                    var keys3 = Object.keys(s3.val());
-                    for(q in keys3){
-                        // console.log("key = ".concat(keys3[q]));
-                        if(!(createdQuizzes.includes(keys3[q]) || takenQuizzes.includes(keys3[q]))){
-                            result.push(keys3[q]);
-                        }
-                    }                    
-                });
-            }
-        ).then(
-            () => {
-                response.send(result.slice(0, 50));
-                return 0;
-            }
-        ).catch(
-            error => {
-                console.log(error);
-                response.sendStatus(500, error);
-                return -1;
-            }
-        );
-    } else {
-        return Promise.all([retrieveCreatedQuizzes, retrieveTakenQuizzes]).then(
-            () => {
-                return admin.database().ref("/categories/general").once('value', function(s3) {
-                    var keys3 = Object.keys(s3.val());
-                    for(q in keys3){
-                        // console.log("key = ".concat(keys3[q]));
-                        if(!(createdQuizzes.includes(keys3[q]) || takenQuizzes.includes(keys3[q]))){
-                            result.push(keys3[q]);
-                        }
-                    }                    
-                });
-            }
-        ).then(
-            () => {
-                response.send(result.slice(0, 50));
-                return 0;
-            }
-        ).catch(
-            error => {
-                console.log(error);
-                response.sendStatus(500, error);
-                return -1;
-            }
-        );
-    }
-  });
+  app.use(cors);
+  exports.app = functions.https.onRequest(app);
