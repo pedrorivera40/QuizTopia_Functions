@@ -115,20 +115,22 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
     request.header("Access-Control-Allow-Headers");
 
 
-    var retrieveCreatedQuizzes = admin.database().ref("/user_info/".concat(userID).concat("/quizzes_created")).once('value', function(s1) {
-            var keys1 = Object.keys(s1.val());
+    var retrieveCreatedQuizzes = admin.database().ref("/users/".concat(userID).concat("/quizzesCreated")).once('value', function(s1) {
+        if(s1.val() !== null) {    
+        var keys1 = Object.keys(s1.val());
             for(q in keys1){
                 // console.log("key1 = ".concat(keys1[q]));
                 createdQuizzes.push(keys1[q]);
             }
-        });
-    var retrieveTakenQuizzes = admin.database().ref("/user_info/".concat(userID).concat("/quizzes_taken")).once('value', function(s2) {
-        var keys2 = Object.keys(s2.val());
-        for(q in keys2){
-            // console.log("key2 = ".concat(keys2[q]));
-            takenQuizzes.push(keys2[q]);
-        }                
-    });
+        }});
+    var retrieveTakenQuizzes = admin.database().ref("/users/".concat(userID).concat("/quizzesTaken")).once('value', function(s2) {
+        if(s2.val() !== null) {
+            var keys2 = Object.keys(s2.val());
+            for(q in keys2){
+                // console.log("key2 = ".concat(keys2[q]));
+                takenQuizzes.push(keys2[q]);
+            }                
+    }});
     return cors(request, response, () => {
         if(category) {
             return Promise.all([retrieveCreatedQuizzes, retrieveTakenQuizzes]).then(
@@ -189,6 +191,27 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
                 }
             );
         }
+    });
+});
+
+// Function for maintaining Deleting a Quiz & Maintain Database Integrity...
+exports.deleteQuizManager = functions.database.ref("/users/{userID}/quizzesCreated/{quizID}/active")
+.onUpdate((snapshot, context) => {
+    let quizID = context.params.quizID;
+    let userID = context.params.userID;
+    return admin.database().ref(`users/${userID}/quizzesCreated/${quizID}/category`).once("value", function(snap) {
+        const category = snap.val();
+        var deleteFromCategory = admin.database().ref(`categories/${category}/${quizID}`).remove();
+        var deleteFromGeneral = admin.database().ref(`categories/general/${quizID}`).remove();
+        var deleteFromUser = admin.database().ref(`users/${userID}/quizzesCreated/${quizID}`).remove();
+        if(category){
+            return Promise.all([deleteFromCategory, deleteFromGeneral, deleteFromUser]);
+        }else {
+            return -1;
+        }
+    }).catch((e) => {
+        console.log("Unable to delete...");
+        return -1;
     });
 });
 
