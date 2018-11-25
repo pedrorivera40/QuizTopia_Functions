@@ -204,8 +204,9 @@ exports.deleteQuizManager = functions.database.ref("/users/{userID}/quizzesCreat
         var deleteFromCategory = admin.database().ref(`categories/${category}/${quizID}`).remove();
         var deleteFromGeneral = admin.database().ref(`categories/general/${quizID}`).remove();
         var deleteFromUser = admin.database().ref(`users/${userID}/quizzesCreated/${quizID}`).remove();
+        var deleteFromQuizzes = admin.database().ref(`quizzes/${quizID}`).remove();
         if(category){
-            return Promise.all([deleteFromCategory, deleteFromGeneral, deleteFromUser]);
+            return Promise.all([deleteFromCategory, deleteFromGeneral, deleteFromUser, deleteFromQuizzes]);
         }else {
             return -1;
         }
