@@ -194,6 +194,19 @@ exports.getUntakenQuizzes = functions.https.onRequest((request, response) => {
     });
 });
 
+// Function for adding the user_id on each leaderboard category...
+exports.addUserToLeaderboardManager = functions.database.ref("/users/{userID}")
+.onCreate((s, context) => {
+    let userID = context.params.userID;
+    return admin.database().ref('leaderboard').once('value')
+    .then(function (snapshot) {
+        return snapshot.forEach(function (childSnapshot) {
+            admin.database().ref().child("leaderboard/" + childSnapshot.key + "/"
+                + userID).set(0);
+        });
+        });
+});
+
 // Function for maintaining Deleting a Quiz & Maintain Database Integrity...
 exports.deleteQuizManager = functions.database.ref("/users/{userID}/quizzesCreated/{quizID}/active")
 .onUpdate((snapshot, context) => {
@@ -202,7 +215,7 @@ exports.deleteQuizManager = functions.database.ref("/users/{userID}/quizzesCreat
     return admin.database().ref(`users/${userID}/quizzesCreated/${quizID}/category`).once("value", function(snap) {
         const category = snap.val();
         var deleteFromCategory = admin.database().ref(`categories/${category}/${quizID}`).remove();
-        var deleteFromGeneral = admin.database().ref(`categories/general/${quizID}`).remove();
+        var deleteFromGeneral = admin.database().ref(`categories/Random/${quizID}`).remove();
         var deleteFromUser = admin.database().ref(`users/${userID}/quizzesCreated/${quizID}`).remove();
         var deleteFromQuizzes = admin.database().ref(`quizzes/${quizID}`).remove();
         if(category){
